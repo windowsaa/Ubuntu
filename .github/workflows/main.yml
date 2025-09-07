@@ -13,21 +13,22 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y kde-standard xrdp
-          echo "/usr/bin/startplasma-x11" > ~/.xsession
+          echo "startplasma-x11" > ~/.xsession
           sudo systemctl enable xrdp
           sudo systemctl restart xrdp
 
-      - name: Set RDP Password to 1234
+      - name: Create RDP User with Full Sudo Access
         run: |
+          sudo useradd -m -s /bin/bash ubuntu || true
           echo "ubuntu:1234" | sudo chpasswd
+          sudo usermod -aG sudo ubuntu
+          echo "ubuntu ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/ubuntu
 
       - name: Install & Start Tailscale
         run: |
           curl -fsSL https://tailscale.com/install.sh | sh
-          sudo tailscale up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }}
-          sleep 10
-          tailscale ip -4 | tee tailscale-ip.txt
-          echo "TAILSCALE_IP=$(cat tailscale-ip.txt)" >> $GITHUB_ENV
+          sudo tailscale up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=ubuntu-kde-${{ github.run_id }}
+          echo "TAILSCALE_IP=$(tailscale ip -4)" >> $GITHUB_ENV
 
       - name: Show RDP Access Info
         run: |
