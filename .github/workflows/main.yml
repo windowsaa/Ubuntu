@@ -1,0 +1,47 @@
+name: Ubuntu REMOTE DESKTOP PROTOCOL
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ubuntu-kde-rdp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3600
+
+    steps:
+      - name: Install KDE Plasma & XRDP
+        run: |
+          sudo apt update
+          sudo apt install -y kde-standard xrdp
+          echo "/usr/bin/startplasma-x11" > ~/.xsession
+          sudo systemctl enable xrdp
+          sudo systemctl restart xrdp
+
+      - name: Set RDP Password to 1234
+        run: |
+          echo "ubuntu:1234" | sudo chpasswd
+
+      - name: Install & Start Tailscale
+        run: |
+          curl -fsSL https://tailscale.com/install.sh | sh
+          sudo tailscale up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }}
+          sleep 10
+          tailscale ip -4 | tee tailscale-ip.txt
+          echo "TAILSCALE_IP=$(cat tailscale-ip.txt)" >> $GITHUB_ENV
+
+      - name: Show RDP Access Info
+        run: |
+          echo ""
+          echo "=== RDP ACCESS ==="
+          echo "Tailscale IP: $TAILSCALE_IP"
+          echo "Username: ubuntu"
+          echo "Password: 1234"
+          echo "=================="
+          echo ""
+
+      - name: Keep Session Alive
+        run: |
+          while true; do
+            echo "Ubuntu KDE RDP running at $(date)"
+            sleep 300
+          done
