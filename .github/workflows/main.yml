@@ -1,24 +1,21 @@
-name: Ubuntu REMOTE DESKTOP PROTOCOL
+name: Ubuntu SSH via Tailscale
 
 on:
   workflow_dispatch:
 
 jobs:
-  ubuntu-kde-rdp:
+  ubuntu-ssh:
     runs-on: ubuntu-latest
     timeout-minutes: 3600
 
     steps:
-      - name: Install KDE Plasma & XRDP
+      - name: Install SSH and Create User
         run: |
           sudo apt update
-          sudo apt install -y kde-standard xrdp
-          echo "startplasma-x11" > ~/.xsession
-          sudo systemctl enable xrdp
-          sudo systemctl restart xrdp
+          sudo apt install -y openssh-server
+          sudo systemctl enable ssh
+          sudo systemctl start ssh
 
-      - name: Create RDP User with Full Sudo Access
-        run: |
           sudo useradd -m -s /bin/bash ubuntu || true
           echo "ubuntu:1234" | sudo chpasswd
           sudo usermod -aG sudo ubuntu
@@ -27,13 +24,13 @@ jobs:
       - name: Install & Start Tailscale
         run: |
           curl -fsSL https://tailscale.com/install.sh | sh
-          sudo tailscale up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=ubuntu-kde-${{ github.run_id }}
+          sudo tailscale up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=ubuntu-ssh-${{ github.run_id }}
           echo "TAILSCALE_IP=$(tailscale ip -4)" >> $GITHUB_ENV
 
-      - name: Show RDP Access Info
+      - name: Show SSH Access Info
         run: |
           echo ""
-          echo "=== RDP ACCESS ==="
+          echo "=== SSH ACCESS ==="
           echo "Tailscale IP: $TAILSCALE_IP"
           echo "Username: ubuntu"
           echo "Password: 1234"
@@ -43,6 +40,6 @@ jobs:
       - name: Keep Session Alive
         run: |
           while true; do
-            echo "Ubuntu KDE RDP running at $(date)"
+            echo "Ubuntu SSH session running at $(date)"
             sleep 300
           done
